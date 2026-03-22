@@ -190,7 +190,16 @@ fun ExpenseListScreen(
                 TableHeader()
 
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(groupedExpenses) { item ->
+                    items(
+                        items = groupedExpenses,
+                        key = { item ->
+                            when (item) {
+                                is ExpenseListItem.MonthHeader -> "month_${item.label}"
+                                is ExpenseListItem.DateHeader  -> "date_${item.label}"
+                                is ExpenseListItem.ExpenseItem -> "expense_${item.expense.id}"
+                            }
+                        }
+                    ) { item ->
                         when (item) {
                             is ExpenseListItem.MonthHeader -> MonthHeaderItem(item.label)
                             is ExpenseListItem.DateHeader  -> DateHeaderItem(item.label, item.totalAmount)
