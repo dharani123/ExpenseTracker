@@ -1,0 +1,24 @@
+package com.example.expensetracker.data.repository
+
+import com.example.expensetracker.data.local.dao.CategoryDao
+import com.example.expensetracker.data.local.entity.CategoryEntity
+import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class CategoryRepository @Inject constructor(
+    private val categoryDao: CategoryDao
+) {
+    fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
+
+    suspend fun addCategory(name: String) {
+        categoryDao.insert(CategoryEntity(name = name.trim(), isDefault = false))
+    }
+
+    suspend fun deleteCategory(category: CategoryEntity) {
+        if (!category.isDefault) {
+            categoryDao.delete(category)
+        }
+    }
+}
