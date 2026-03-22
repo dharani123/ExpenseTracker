@@ -40,6 +40,9 @@ interface ExpenseDao {
     @Query("UPDATE expenses SET categoryId = :categoryId WHERE id = :expenseId")
     suspend fun updateCategory(expenseId: Long, categoryId: Long)
 
+    @Query("UPDATE expenses SET amount = :amount WHERE id = :expenseId")
+    suspend fun updateAmount(expenseId: Long, amount: Double)
+
     @Query("""
         SELECT c.name AS categoryName, SUM(e.amount) AS total
         FROM expenses e

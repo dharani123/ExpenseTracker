@@ -27,7 +27,7 @@ class SmsReader @Inject constructor(
 
     // Only process SMS from this date onwards
     private val startDateMillis: Long = java.util.Calendar.getInstance().apply {
-        set(2026, java.util.Calendar.MARCH, 20, 0, 0, 0)
+        set(2026, java.util.Calendar.MARCH, 21, 0, 0, 0)
         set(java.util.Calendar.MILLISECOND, 0)
     }.timeInMillis
 

@@ -47,6 +47,10 @@ class ExpenseRepository @Inject constructor(
         expenseDao.updateCategory(expenseId, categoryId)
     }
 
+    suspend fun updateAmount(expenseId: Long, amount: Double) {
+        expenseDao.updateAmount(expenseId, amount)
+    }
+
     private fun monthRange(year: Int, month: Int): Pair<Long, Long> {
         val start = Calendar.getInstance().apply {
             set(year, month, 1, 0, 0, 0)

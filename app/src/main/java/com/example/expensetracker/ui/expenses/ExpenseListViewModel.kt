@@ -45,6 +45,14 @@ class ExpenseListViewModel @Inject constructor(
     val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
 
     private fun buildGroupedList(expenses: List<ExpenseWithCategory>): List<ExpenseListItem> {
+        // Pre-compute daily totals keyed by date label
+        val dailyTotals = mutableMapOf<String, Double>()
+        for (expense in expenses) {
+            val cal = Calendar.getInstance().apply { timeInMillis = expense.transactionDate }
+            val dateLabel = dateFmt.format(cal.time)
+            dailyTotals[dateLabel] = (dailyTotals[dateLabel] ?: 0.0) + expense.amount
+        }
+
         val items = mutableListOf<ExpenseListItem>()
         var currentMonth = ""
         var currentDate = ""
@@ -61,7 +69,7 @@ class ExpenseListViewModel @Inject constructor(
             }
 
             if (dateLabel != currentDate) {
-                items.add(ExpenseListItem.DateHeader(dateLabel))
+                items.add(ExpenseListItem.DateHeader(dateLabel, dailyTotals[dateLabel] ?: 0.0))
                 currentDate = dateLabel
             }
 
@@ -92,6 +100,12 @@ class ExpenseListViewModel @Inject constructor(
     fun updateCategory(expenseId: Long, categoryId: Long) {
         viewModelScope.launch {
             expenseRepository.updateCategory(expenseId, categoryId)
+        }
+    }
+
+    fun updateAmount(expenseId: Long, amount: Double) {
+        viewModelScope.launch {
+            expenseRepository.updateAmount(expenseId, amount)
         }
     }
 

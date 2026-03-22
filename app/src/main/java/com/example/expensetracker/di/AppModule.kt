@@ -2,6 +2,7 @@ package com.example.expensetracker.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.expensetracker.data.local.AppDatabase
 import com.example.expensetracker.data.local.dao.CategoryDao
@@ -13,6 +14,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Remove all pre-seeded categories so user starts fresh
+        db.execSQL("DELETE FROM categories")
+    }
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -21,18 +29,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, "expense_tracker_db")
-            .addCallback(object : androidx.room.RoomDatabase.Callback() {
-                override fun onCreate(db: SupportSQLiteDatabase) {
-                    super.onCreate(db)
-                    val defaults = listOf(
-                        "Food", "Transport", "Shopping", "Bills",
-                        "Entertainment", "Health", "Education", "Other"
-                    )
-                    defaults.forEach { name ->
-                        db.execSQL("INSERT INTO categories (name, isDefault) VALUES ('$name', 1)")
-                    }
-                }
-            })
+            .addMigrations(MIGRATION_1_2)
             .build()
     }
 

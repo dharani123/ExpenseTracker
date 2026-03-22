@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -192,14 +193,17 @@ fun ExpenseListScreen(
                     items(groupedExpenses) { item ->
                         when (item) {
                             is ExpenseListItem.MonthHeader -> MonthHeaderItem(item.label)
-                            is ExpenseListItem.DateHeader  -> DateHeaderItem(item.label)
+                            is ExpenseListItem.DateHeader  -> DateHeaderItem(item.label, item.totalAmount)
                             is ExpenseListItem.ExpenseItem -> ExpenseRow(
                                 expense = item.expense,
                                 categories = categories,
                                 onCategorySelected = { categoryId ->
                                     viewModel.updateCategory(item.expense.id, categoryId)
                                 },
-                                onAddCategoryClick = { showAddCategoryDialog = true }
+                                onAddCategoryClick = { showAddCategoryDialog = true },
+                                onAmountEdited = { newAmount ->
+                                    viewModel.updateAmount(item.expense.id, newAmount)
+                                }
                             )
                         }
                     }
@@ -228,15 +232,27 @@ private fun MonthHeaderItem(label: String) {
 }
 
 @Composable
-private fun DateHeaderItem(label: String) {
+private fun DateHeaderItem(label: String, totalAmount: Double) {
     Column {
-        Text(
-            text = label,
-            modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "(${formatAmount(totalAmount)})",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
     }
 }
@@ -256,16 +272,92 @@ private fun TableHeader() {
 }
 
 @Composable
+private fun SmsBodyDialog(body: String, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        title = { Text("Original SMS") },
+        text = {
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    )
+}
+
+@Composable
+private fun EditAmountDialog(
+    currentAmount: Double,
+    onConfirm: (Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var text by remember { mutableStateOf("%.2f".format(currentAmount)) }
+    val isValid = text.toDoubleOrNull()?.let { it > 0 } == true
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Amount") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Amount (Rs.)") },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                ),
+                singleLine = true,
+                isError = !isValid
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { text.toDoubleOrNull()?.let { onConfirm(it) } },
+                enabled = isValid
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
 private fun ExpenseRow(
     expense: ExpenseWithCategory,
     categories: List<CategoryEntity>,
     onCategorySelected: (Long) -> Unit,
-    onAddCategoryClick: () -> Unit
+    onAddCategoryClick: () -> Unit,
+    onAmountEdited: (Double) -> Unit
 ) {
+    var showSmsDialog by remember { mutableStateOf(false) }
+    var showEditAmount by remember { mutableStateOf(false) }
+
+    if (showSmsDialog) {
+        SmsBodyDialog(
+            body = expense.smsBody,
+            onDismiss = { showSmsDialog = false }
+        )
+    }
+
+    if (showEditAmount) {
+        EditAmountDialog(
+            currentAmount = expense.amount,
+            onConfirm = { newAmount ->
+                onAmountEdited(newAmount)
+                showEditAmount = false
+            },
+            onDismiss = { showEditAmount = false }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 3.dp),
+        onClick = { showSmsDialog = true },
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -277,7 +369,9 @@ private fun ExpenseRow(
         ) {
             Text(
                 text = formatAmount(expense.amount),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { showEditAmount = true },
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.error
