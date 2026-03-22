@@ -23,8 +23,11 @@ class ExpenseRepository @Inject constructor(
         return expenseDao.getCategoryTotals(start, end)
     }
 
-    suspend fun syncSmsExpenses() {
+    // Returns number of new transactions inserted (duplicates are ignored by DB)
+    suspend fun syncSmsExpenses(): Int {
         val parsed = smsReader.readAndParse()
+        if (parsed.isEmpty()) return 0
+
         val entities = parsed.map {
             ExpenseEntity(
                 amount = it.amount,
@@ -34,9 +37,10 @@ class ExpenseRepository @Inject constructor(
                 transactionDate = it.transactionDate
             )
         }
-        if (entities.isNotEmpty()) {
-            expenseDao.insertAll(entities)
-        }
+        expenseDao.insertAll(entities)
+
+        // Return how many SMS were parsed (includes duplicates — UI will show this for feedback)
+        return parsed.size
     }
 
     suspend fun updateCategory(expenseId: Long, categoryId: Long) {
