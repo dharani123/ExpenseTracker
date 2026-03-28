@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -31,9 +31,19 @@ class ExpenseListViewModel @Inject constructor(
     private val expenses: StateFlow<List<ExpenseWithCategory>> = expenseRepository.getAllExpenses()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val groupedExpenses: StateFlow<List<ExpenseListItem>> = expenses
-        .map { buildGroupedList(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _showOnlyUncategorized = MutableStateFlow(false)
+    val showOnlyUncategorized: StateFlow<Boolean> = _showOnlyUncategorized.asStateFlow()
+
+    val groupedExpenses: StateFlow<List<ExpenseListItem>> = combine(
+        expenses, _showOnlyUncategorized
+    ) { list, filterOn ->
+        val filtered = if (filterOn) list.filter { it.categoryId == null } else list
+        buildGroupedList(filtered)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun toggleUncategorizedFilter() {
+        _showOnlyUncategorized.value = !_showOnlyUncategorized.value
+    }
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -112,6 +122,12 @@ class ExpenseListViewModel @Inject constructor(
     fun addCategory(name: String) {
         viewModelScope.launch {
             categoryRepository.addCategory(name)
+        }
+    }
+
+    fun deleteCategory(category: CategoryEntity) {
+        viewModelScope.launch {
+            categoryRepository.deleteCategory(category)
         }
     }
 

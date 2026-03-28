@@ -1,17 +1,20 @@
 package com.example.expensetracker.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +37,7 @@ fun CategoryDropdown(
     selectedCategoryId: Long?,
     onCategorySelected: (Long) -> Unit,
     onAddCategoryClick: () -> Unit,
+    onDeleteCategory: (CategoryEntity) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -52,7 +56,6 @@ fun CategoryDropdown(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
             modifier = Modifier
                 .menuAnchor()
-                .clickable { expanded = true }
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -80,7 +83,25 @@ fun CategoryDropdown(
         ) {
             categories.forEach { category ->
                 DropdownMenuItem(
-                    text = { Text(category.name) },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(category.name, modifier = Modifier.weight(1f))
+                            IconButton(
+                                onClick = {
+                                    expanded = false
+                                    onDeleteCategory(category)
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Delete ${category.name}",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
                     onClick = {
                         onCategorySelected(category.id)
                         expanded = false

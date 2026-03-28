@@ -17,8 +17,7 @@ class CategoryRepository @Inject constructor(
     }
 
     suspend fun deleteCategory(category: CategoryEntity) {
-        if (!category.isDefault) {
-            categoryDao.delete(category)
-        }
+        categoryDao.clearCategoryFromExpenses(category.id)
+        categoryDao.delete(category)
     }
 }

@@ -17,6 +17,9 @@ interface CategoryDao {
     @Delete
     suspend fun delete(category: CategoryEntity)
 
+    @Query("UPDATE expenses SET categoryId = NULL WHERE categoryId = :categoryId")
+    suspend fun clearCategoryFromExpenses(categoryId: Long)
+
     @Query("SELECT * FROM categories ORDER BY isDefault DESC, name ASC")
     fun getAllCategories(): Flow<List<CategoryEntity>>
 }

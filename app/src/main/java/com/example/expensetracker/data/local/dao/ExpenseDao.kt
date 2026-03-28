@@ -1,5 +1,6 @@
 package com.example.expensetracker.data.local.dao
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -7,6 +8,7 @@ import androidx.room.Query
 import com.example.expensetracker.data.local.entity.ExpenseEntity
 import kotlinx.coroutines.flow.Flow
 
+@Immutable
 data class ExpenseWithCategory(
     val id: Long,
     val amount: Double,
@@ -17,6 +19,7 @@ data class ExpenseWithCategory(
     val transactionDate: Long
 )
 
+@Immutable
 data class CategoryTotal(
     val categoryName: String,
     val total: Double

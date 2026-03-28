@@ -16,7 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 import javax.inject.Inject
 
+enum class AnalysisTab { MONTHLY, DAILY }
+
 data class MonthSelection(val year: Int, val month: Int)
+data class DaySelection(val year: Int, val month: Int, val day: Int)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -26,41 +29,95 @@ class AnalysisViewModel @Inject constructor(
 
     private val now = Calendar.getInstance()
 
-    private val _selection = MutableStateFlow(
+    // --- Tab ---
+    private val _selectedTab = MutableStateFlow(AnalysisTab.MONTHLY)
+    val selectedTab: StateFlow<AnalysisTab> = _selectedTab.asStateFlow()
+
+    fun selectTab(tab: AnalysisTab) { _selectedTab.value = tab }
+
+    // --- Monthly ---
+    private val _monthSelection = MutableStateFlow(
         MonthSelection(now.get(Calendar.YEAR), now.get(Calendar.MONTH))
     )
-    val selection: StateFlow<MonthSelection> = _selection.asStateFlow()
+    val monthSelection: StateFlow<MonthSelection> = _monthSelection.asStateFlow()
 
-    val categoryTotals: StateFlow<List<CategoryTotal>> = _selection
+    val monthlyCategoryTotals: StateFlow<List<CategoryTotal>> = _monthSelection
         .flatMapLatest { (year, month) ->
             expenseRepository.getMonthlyCategoryTotals(year, month)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val monthlyTotal: StateFlow<Double> = categoryTotals
-        .map { list -> list.sumOf { it.total } }
+    val monthlyTotal: StateFlow<Double> = monthlyCategoryTotals
+        .map { it.sumOf { c -> c.total } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     fun previousMonth() {
         val cal = Calendar.getInstance().apply {
-            set(_selection.value.year, _selection.value.month, 1)
+            set(_monthSelection.value.year, _monthSelection.value.month, 1)
             add(Calendar.MONTH, -1)
         }
-        _selection.value = MonthSelection(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+        _monthSelection.value = MonthSelection(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
     }
 
     fun nextMonth() {
         val cal = Calendar.getInstance().apply {
-            set(_selection.value.year, _selection.value.month, 1)
+            set(_monthSelection.value.year, _monthSelection.value.month, 1)
             add(Calendar.MONTH, 1)
         }
-        // Don't allow navigating into the future
         val nowCal = Calendar.getInstance()
         if (cal.get(Calendar.YEAR) < nowCal.get(Calendar.YEAR) ||
             (cal.get(Calendar.YEAR) == nowCal.get(Calendar.YEAR) &&
                     cal.get(Calendar.MONTH) <= nowCal.get(Calendar.MONTH))
         ) {
-            _selection.value = MonthSelection(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+            _monthSelection.value = MonthSelection(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+        }
+    }
+
+    // --- Daily ---
+    private val _daySelection = MutableStateFlow(
+        DaySelection(
+            now.get(Calendar.YEAR),
+            now.get(Calendar.MONTH),
+            now.get(Calendar.DAY_OF_MONTH)
+        )
+    )
+    val daySelection: StateFlow<DaySelection> = _daySelection.asStateFlow()
+
+    val dailyCategoryTotals: StateFlow<List<CategoryTotal>> = _daySelection
+        .flatMapLatest { (year, month, day) ->
+            expenseRepository.getDailyCategoryTotals(year, month, day)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val dailyTotal: StateFlow<Double> = dailyCategoryTotals
+        .map { it.sumOf { c -> c.total } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    fun previousDay() {
+        val cal = Calendar.getInstance().apply {
+            set(_daySelection.value.year, _daySelection.value.month, _daySelection.value.day)
+            add(Calendar.DAY_OF_MONTH, -1)
+        }
+        _daySelection.value = DaySelection(
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    fun nextDay() {
+        val cal = Calendar.getInstance().apply {
+            set(_daySelection.value.year, _daySelection.value.month, _daySelection.value.day)
+            add(Calendar.DAY_OF_MONTH, 1)
+        }
+        val nowCal = Calendar.getInstance()
+        // Don't allow future dates
+        if (!cal.after(nowCal)) {
+            _daySelection.value = DaySelection(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
         }
     }
 }

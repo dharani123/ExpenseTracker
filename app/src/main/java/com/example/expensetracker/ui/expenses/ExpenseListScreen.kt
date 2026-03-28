@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.FilterAltOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,7 +62,19 @@ fun ExpenseListScreen(
     val groupedExpenses by viewModel.groupedExpenses.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+
+    // Stable lambdas — created once per ViewModel instance, not on every recomposition
+    val onCategorySelected = remember(viewModel) {
+        { expenseId: Long, categoryId: Long -> viewModel.updateCategory(expenseId, categoryId) }
+    }
+    val onAmountEdited = remember(viewModel) {
+        { expenseId: Long, newAmount: Double -> viewModel.updateAmount(expenseId, newAmount) }
+    }
+    val onDeleteCategory = remember(viewModel) {
+        { category: com.example.expensetracker.data.local.entity.CategoryEntity -> viewModel.deleteCategory(category) }
+    }
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
+    val showOnlyUncategorized by viewModel.showOnlyUncategorized.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
@@ -102,6 +116,19 @@ fun ExpenseListScreen(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
             actions = {
+                IconButton(onClick = { viewModel.toggleUncategorizedFilter() }) {
+                    Icon(
+                        imageVector = if (showOnlyUncategorized)
+                            Icons.Default.FilterAlt
+                        else
+                            Icons.Default.FilterAltOff,
+                        contentDescription = "Filter uncategorized",
+                        tint = if (showOnlyUncategorized)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
                 IconButton(
                     onClick = {
                         val granted = ContextCompat.checkSelfPermission(
@@ -198,6 +225,13 @@ fun ExpenseListScreen(
                                 is ExpenseListItem.DateHeader  -> "date_${item.label}"
                                 is ExpenseListItem.ExpenseItem -> "expense_${item.expense.id}"
                             }
+                        },
+                        contentType = { item ->
+                            when (item) {
+                                is ExpenseListItem.MonthHeader -> 0
+                                is ExpenseListItem.DateHeader  -> 1
+                                is ExpenseListItem.ExpenseItem -> 2
+                            }
                         }
                     ) { item ->
                         when (item) {
@@ -206,13 +240,10 @@ fun ExpenseListScreen(
                             is ExpenseListItem.ExpenseItem -> ExpenseRow(
                                 expense = item.expense,
                                 categories = categories,
-                                onCategorySelected = { categoryId ->
-                                    viewModel.updateCategory(item.expense.id, categoryId)
-                                },
+                                onCategorySelected = onCategorySelected,
                                 onAddCategoryClick = { showAddCategoryDialog = true },
-                                onAmountEdited = { newAmount ->
-                                    viewModel.updateAmount(item.expense.id, newAmount)
-                                }
+                                onAmountEdited = onAmountEdited,
+                                onDeleteCategory = onDeleteCategory
                             )
                         }
                     }
@@ -337,9 +368,10 @@ private fun EditAmountDialog(
 private fun ExpenseRow(
     expense: ExpenseWithCategory,
     categories: List<CategoryEntity>,
-    onCategorySelected: (Long) -> Unit,
+    onCategorySelected: (expenseId: Long, categoryId: Long) -> Unit,
     onAddCategoryClick: () -> Unit,
-    onAmountEdited: (Double) -> Unit
+    onAmountEdited: (expenseId: Long, newAmount: Double) -> Unit,
+    onDeleteCategory: (CategoryEntity) -> Unit
 ) {
     var showSmsDialog by remember { mutableStateOf(false) }
     var showEditAmount by remember { mutableStateOf(false) }
@@ -355,7 +387,7 @@ private fun ExpenseRow(
         EditAmountDialog(
             currentAmount = expense.amount,
             onConfirm = { newAmount ->
-                onAmountEdited(newAmount)
+                onAmountEdited(expense.id, newAmount)
                 showEditAmount = false
             },
             onDismiss = { showEditAmount = false }
@@ -366,7 +398,6 @@ private fun ExpenseRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 3.dp),
-        onClick = { showSmsDialog = true },
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -389,15 +420,17 @@ private fun ExpenseRow(
                 text = expense.merchant,
                 modifier = Modifier
                     .weight(1.2f)
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 4.dp)
+                    .clickable { showSmsDialog = true },
                 fontSize = 12.sp,
                 maxLines = 2
             )
             CategoryDropdown(
                 categories = categories,
                 selectedCategoryId = expense.categoryId,
-                onCategorySelected = onCategorySelected,
+                onCategorySelected = { categoryId -> onCategorySelected(expense.id, categoryId) },
                 onAddCategoryClick = onAddCategoryClick,
+                onDeleteCategory = onDeleteCategory,
                 modifier = Modifier.weight(1.4f)
             )
         }

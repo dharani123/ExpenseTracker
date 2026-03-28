@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -43,26 +44,40 @@ class MainActivity : ComponentActivity() {
                                 selected = currentRoute == Screen.ExpenseList.route,
                                 onClick = {
                                     navController.navigate(Screen.ExpenseList.route) {
-                                        popUpTo(Screen.ExpenseList.route) { inclusive = true }
+                                        popUpTo(Screen.ExpenseList.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 },
                                 icon = { Icon(Icons.Default.List, contentDescription = "Expenses") },
-                                label = { Text("Expenses") }
+                                label = { Text("Expenses") },
+                                colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.secondary,
+                                    selectedTextColor = MaterialTheme.colorScheme.secondary,
+                                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                                )
                             )
                             NavigationBarItem(
                                 selected = currentRoute == Screen.Analysis.route,
                                 onClick = {
                                     navController.navigate(Screen.Analysis.route) {
-                                        popUpTo(Screen.ExpenseList.route)
+                                        popUpTo(Screen.ExpenseList.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 },
                                 icon = { Icon(Icons.Default.BarChart, contentDescription = "Analysis") },
-                                label = { Text("Analysis") }
+                                label = { Text("Analysis") },
+                                colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.secondary,
+                                    selectedTextColor = MaterialTheme.colorScheme.secondary,
+                                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                                )
                             )
                         }
                     }
                 ) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
+                    Box(modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())) {
                         ExpenseTrackerNavGraph(navController = navController)
                     }
                 }

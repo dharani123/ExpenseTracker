@@ -20,11 +20,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -42,14 +45,13 @@ import java.util.Locale
 fun AnalysisScreen(
     viewModel: AnalysisViewModel = hiltViewModel()
 ) {
-    val selection by viewModel.selection.collectAsStateWithLifecycle()
-    val categoryTotals by viewModel.categoryTotals.collectAsStateWithLifecycle()
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    val monthSelection by viewModel.monthSelection.collectAsStateWithLifecycle()
+    val monthlyCategoryTotals by viewModel.monthlyCategoryTotals.collectAsStateWithLifecycle()
     val monthlyTotal by viewModel.monthlyTotal.collectAsStateWithLifecycle()
-
-    val monthLabel = remember(selection) {
-        val cal = Calendar.getInstance().apply { set(selection.year, selection.month, 1) }
-        SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
-    }
+    val daySelection by viewModel.daySelection.collectAsStateWithLifecycle()
+    val dailyCategoryTotals by viewModel.dailyCategoryTotals.collectAsStateWithLifecycle()
+    val dailyTotal by viewModel.dailyTotal.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -59,7 +61,64 @@ fun AnalysisScreen(
             )
         )
 
-        // Month selector
+        TabRow(selectedTabIndex = selectedTab.ordinal) {
+            Tab(
+                selected = selectedTab == AnalysisTab.MONTHLY,
+                onClick = { viewModel.selectTab(AnalysisTab.MONTHLY) },
+                text = { Text("Monthly") }
+            )
+            Tab(
+                selected = selectedTab == AnalysisTab.DAILY,
+                onClick = { viewModel.selectTab(AnalysisTab.DAILY) },
+                text = { Text("Daily") }
+            )
+        }
+
+        when (selectedTab) {
+            AnalysisTab.MONTHLY -> {
+                val label = remember(monthSelection) {
+                    val cal = Calendar.getInstance().apply {
+                        set(monthSelection.year, monthSelection.month, 1)
+                    }
+                    SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(cal.time)
+                }
+                PeriodAnalysisContent(
+                    periodLabel = label,
+                    categoryTotals = monthlyCategoryTotals,
+                    total = monthlyTotal,
+                    onPrevious = { viewModel.previousMonth() },
+                    onNext = { viewModel.nextMonth() }
+                )
+            }
+            AnalysisTab.DAILY -> {
+                val label = remember(daySelection) {
+                    val cal = Calendar.getInstance().apply {
+                        set(daySelection.year, daySelection.month, daySelection.day)
+                    }
+                    SimpleDateFormat("EEEE, dd MMM yyyy", Locale.getDefault()).format(cal.time)
+                }
+                PeriodAnalysisContent(
+                    periodLabel = label,
+                    categoryTotals = dailyCategoryTotals,
+                    total = dailyTotal,
+                    onPrevious = { viewModel.previousDay() },
+                    onNext = { viewModel.nextDay() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodAnalysisContent(
+    periodLabel: String,
+    categoryTotals: List<CategoryTotal>,
+    total: Double,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Period selector
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -67,22 +126,22 @@ fun AnalysisScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = { viewModel.previousMonth() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous month")
+            IconButton(onClick = onPrevious) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous")
             }
             Text(
-                text = monthLabel,
+                text = periodLabel,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
-            IconButton(onClick = { viewModel.nextMonth() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next month")
+            IconButton(onClick = onNext) {
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next")
             }
         }
 
         HorizontalDivider()
 
-        // Total spending card
+        // Total card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,7 +160,7 @@ fun AnalysisScreen(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = formatAmount(monthlyTotal),
+                    text = formatAmount(total),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -117,7 +176,7 @@ fun AnalysisScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No categorised expenses for $monthLabel",
+                    text = "No categorised expenses for this period",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -129,7 +188,6 @@ fun AnalysisScreen(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,7 +195,7 @@ fun AnalysisScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(categoryTotals) { item ->
-                    CategoryRow(item = item, total = monthlyTotal)
+                    CategoryRow(item = item, total = total)
                 }
             }
         }
