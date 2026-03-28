@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -18,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,8 +43,26 @@ fun CategoryDropdown(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var categoryToDelete by remember { mutableStateOf<CategoryEntity?>(null) }
     val selectedName = remember(selectedCategoryId, categories) {
         categories.find { it.id == selectedCategoryId }?.name ?: "—"
+    }
+
+    categoryToDelete?.let { category ->
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = { Text("Delete Category") },
+            text = { Text("Delete \"${category.name}\"? Expenses assigned to it will become uncategorised.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteCategory(category)
+                    categoryToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) { Text("Cancel") }
+            }
+        )
     }
 
     ExposedDropdownMenuBox(
@@ -89,7 +109,7 @@ fun CategoryDropdown(
                             IconButton(
                                 onClick = {
                                     expanded = false
-                                    onDeleteCategory(category)
+                                    categoryToDelete = category
                                 },
                                 modifier = Modifier.size(24.dp)
                             ) {
