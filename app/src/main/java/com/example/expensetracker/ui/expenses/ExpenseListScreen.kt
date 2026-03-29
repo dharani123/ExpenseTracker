@@ -109,6 +109,7 @@ fun ExpenseListScreen(
         )
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text("Expenses") },
@@ -143,8 +144,6 @@ fun ExpenseListScreen(
                 }
             }
         )
-
-        SnackbarHost(hostState = snackbarHostState)
 
         when {
             permissionDenied -> PermissionDeniedMessage(
@@ -250,6 +249,11 @@ fun ExpenseListScreen(
                 }
             }
         }
+    }
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
     }
 }
 
