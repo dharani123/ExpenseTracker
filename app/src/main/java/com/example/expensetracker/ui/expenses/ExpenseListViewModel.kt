@@ -34,15 +34,26 @@ class ExpenseListViewModel @Inject constructor(
     private val _showOnlyUncategorized = MutableStateFlow(false)
     val showOnlyUncategorized: StateFlow<Boolean> = _showOnlyUncategorized.asStateFlow()
 
+    private val _selectedCategoryFilter = MutableStateFlow<Long?>(null)
+    val selectedCategoryFilter: StateFlow<Long?> = _selectedCategoryFilter.asStateFlow()
+
     val groupedExpenses: StateFlow<List<ExpenseListItem>> = combine(
-        expenses, _showOnlyUncategorized
-    ) { list, filterOn ->
-        val filtered = if (filterOn) list.filter { it.categoryId == null } else list
+        expenses, _showOnlyUncategorized, _selectedCategoryFilter
+    ) { list, filterUncategorized, categoryId ->
+        val filtered = list
+            .let { if (filterUncategorized) it.filter { e -> e.categoryId == null } else it }
+            .let { if (categoryId != null) it.filter { e -> e.categoryId == categoryId } else it }
         buildGroupedList(filtered)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun toggleUncategorizedFilter() {
         _showOnlyUncategorized.value = !_showOnlyUncategorized.value
+        if (_showOnlyUncategorized.value) _selectedCategoryFilter.value = null
+    }
+
+    fun selectCategoryFilter(categoryId: Long?) {
+        _selectedCategoryFilter.value = categoryId
+        if (categoryId != null) _showOnlyUncategorized.value = false
     }
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategories()

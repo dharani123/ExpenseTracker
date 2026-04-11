@@ -28,6 +28,11 @@ class ExpenseRepository @Inject constructor(
         return expenseDao.getCategoryTotals(start, end)
     }
 
+    fun getWeeklyCategoryTotals(year: Int, week: Int): Flow<List<CategoryTotal>> {
+        val (start, end) = weekRange(year, week)
+        return expenseDao.getCategoryTotals(start, end)
+    }
+
     // Returns number of new transactions inserted (duplicates are ignored by DB)
     suspend fun syncSmsExpenses(): Int {
         val parsed = smsReader.readAndParse()
@@ -54,6 +59,29 @@ class ExpenseRepository @Inject constructor(
 
     suspend fun updateAmount(expenseId: Long, amount: Double) {
         expenseDao.updateAmount(expenseId, amount)
+    }
+
+    private fun weekRange(year: Int, week: Int): Pair<Long, Long> {
+        val start = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.WEEK_OF_YEAR, week)
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val end = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.WEEK_OF_YEAR, week)
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+            add(Calendar.DAY_OF_WEEK, 6)
+        }.timeInMillis
+        return Pair(start, end)
     }
 
     private fun dayRange(year: Int, month: Int, day: Int): Pair<Long, Long> {

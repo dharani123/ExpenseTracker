@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.FilterAltOff
@@ -23,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,6 +79,7 @@ fun ExpenseListScreen(
     }
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
     val showOnlyUncategorized by viewModel.showOnlyUncategorized.collectAsStateWithLifecycle()
+    val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
@@ -144,6 +149,29 @@ fun ExpenseListScreen(
                 }
             }
         )
+
+        if (categories.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                categories.forEach { category ->
+                    FilterChip(
+                        selected = selectedCategoryFilter == category.id,
+                        onClick = {
+                            viewModel.selectCategoryFilter(
+                                if (selectedCategoryFilter == category.id) null else category.id
+                            )
+                        },
+                        label = { Text(category.name, fontSize = 12.sp) }
+                    )
+                }
+            }
+        }
 
         when {
             permissionDenied -> PermissionDeniedMessage(
@@ -316,13 +344,30 @@ private fun TableHeader() {
 }
 
 @Composable
-private fun SmsBodyDialog(body: String, onDismiss: () -> Unit) {
+private fun SmsBodyDialog(body: String, transactionDate: Long, onDismiss: () -> Unit) {
+    val time = remember(transactionDate) {
+        java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+            .format(java.util.Date(transactionDate))
+    }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Close") }
         },
-        title = { Text("Original SMS") },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Original SMS")
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         text = {
             Text(
                 text = body,
@@ -339,7 +384,7 @@ private fun EditAmountDialog(
     onDismiss: () -> Unit
 ) {
     var text by remember { mutableStateOf("%.2f".format(currentAmount)) }
-    val isValid = text.toDoubleOrNull()?.let { it > 0 } == true
+    val isValid = text.toDoubleOrNull()?.let { it >= 0 } == true
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
@@ -383,6 +428,7 @@ private fun ExpenseRow(
     if (showSmsDialog) {
         SmsBodyDialog(
             body = expense.smsBody,
+            transactionDate = expense.transactionDate,
             onDismiss = { showSmsDialog = false }
         )
     }

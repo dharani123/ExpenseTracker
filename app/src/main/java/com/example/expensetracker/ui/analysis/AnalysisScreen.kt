@@ -49,6 +49,9 @@ fun AnalysisScreen(
     val monthSelection by viewModel.monthSelection.collectAsStateWithLifecycle()
     val monthlyCategoryTotals by viewModel.monthlyCategoryTotals.collectAsStateWithLifecycle()
     val monthlyTotal by viewModel.monthlyTotal.collectAsStateWithLifecycle()
+    val weekSelection by viewModel.weekSelection.collectAsStateWithLifecycle()
+    val weeklyCategoryTotals by viewModel.weeklyCategoryTotals.collectAsStateWithLifecycle()
+    val weeklyTotal by viewModel.weeklyTotal.collectAsStateWithLifecycle()
     val daySelection by viewModel.daySelection.collectAsStateWithLifecycle()
     val dailyCategoryTotals by viewModel.dailyCategoryTotals.collectAsStateWithLifecycle()
     val dailyTotal by viewModel.dailyTotal.collectAsStateWithLifecycle()
@@ -66,6 +69,11 @@ fun AnalysisScreen(
                 selected = selectedTab == AnalysisTab.MONTHLY,
                 onClick = { viewModel.selectTab(AnalysisTab.MONTHLY) },
                 text = { Text("Monthly") }
+            )
+            Tab(
+                selected = selectedTab == AnalysisTab.WEEKLY,
+                onClick = { viewModel.selectTab(AnalysisTab.WEEKLY) },
+                text = { Text("Weekly") }
             )
             Tab(
                 selected = selectedTab == AnalysisTab.DAILY,
@@ -88,6 +96,30 @@ fun AnalysisScreen(
                     total = monthlyTotal,
                     onPrevious = { viewModel.previousMonth() },
                     onNext = { viewModel.nextMonth() }
+                )
+            }
+            AnalysisTab.WEEKLY -> {
+                val label = remember(weekSelection) {
+                    val startCal = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, weekSelection.year)
+                        set(Calendar.WEEK_OF_YEAR, weekSelection.week)
+                        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                    }
+                    val endCal = Calendar.getInstance().apply {
+                        set(Calendar.YEAR, weekSelection.year)
+                        set(Calendar.WEEK_OF_YEAR, weekSelection.week)
+                        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+                        add(Calendar.DAY_OF_WEEK, 6)
+                    }
+                    val fmt = SimpleDateFormat("dd MMM", Locale.getDefault())
+                    "${fmt.format(startCal.time)} – ${fmt.format(endCal.time)}"
+                }
+                PeriodAnalysisContent(
+                    periodLabel = label,
+                    categoryTotals = weeklyCategoryTotals,
+                    total = weeklyTotal,
+                    onPrevious = { viewModel.previousWeek() },
+                    onNext = { viewModel.nextWeek() }
                 )
             }
             AnalysisTab.DAILY -> {

@@ -16,9 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 import javax.inject.Inject
 
-enum class AnalysisTab { MONTHLY, DAILY }
+enum class AnalysisTab { MONTHLY, WEEKLY, DAILY }
 
 data class MonthSelection(val year: Int, val month: Int)
+data class WeekSelection(val year: Int, val week: Int)
 data class DaySelection(val year: Int, val month: Int, val day: Int)
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -70,6 +71,43 @@ class AnalysisViewModel @Inject constructor(
                     cal.get(Calendar.MONTH) <= nowCal.get(Calendar.MONTH))
         ) {
             _monthSelection.value = MonthSelection(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+        }
+    }
+
+    // --- Weekly ---
+    private val _weekSelection = MutableStateFlow(
+        WeekSelection(now.get(Calendar.YEAR), now.get(Calendar.WEEK_OF_YEAR))
+    )
+    val weekSelection: StateFlow<WeekSelection> = _weekSelection.asStateFlow()
+
+    val weeklyCategoryTotals: StateFlow<List<CategoryTotal>> = _weekSelection
+        .flatMapLatest { (year, week) ->
+            expenseRepository.getWeeklyCategoryTotals(year, week)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val weeklyTotal: StateFlow<Double> = weeklyCategoryTotals
+        .map { it.sumOf { c -> c.total } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    fun previousWeek() {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.YEAR, _weekSelection.value.year)
+            set(Calendar.WEEK_OF_YEAR, _weekSelection.value.week)
+            add(Calendar.WEEK_OF_YEAR, -1)
+        }
+        _weekSelection.value = WeekSelection(cal.get(Calendar.YEAR), cal.get(Calendar.WEEK_OF_YEAR))
+    }
+
+    fun nextWeek() {
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.YEAR, _weekSelection.value.year)
+            set(Calendar.WEEK_OF_YEAR, _weekSelection.value.week)
+            add(Calendar.WEEK_OF_YEAR, 1)
+        }
+        val nowCal = Calendar.getInstance()
+        if (!cal.after(nowCal)) {
+            _weekSelection.value = WeekSelection(cal.get(Calendar.YEAR), cal.get(Calendar.WEEK_OF_YEAR))
         }
     }
 
