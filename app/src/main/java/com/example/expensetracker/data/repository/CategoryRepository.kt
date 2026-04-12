@@ -12,8 +12,8 @@ class CategoryRepository @Inject constructor(
 ) {
     fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
 
-    suspend fun addCategory(name: String) {
-        categoryDao.insert(CategoryEntity(name = name.trim(), isDefault = false))
+    suspend fun addCategory(name: String, colorIndex: Int) {
+        categoryDao.insert(CategoryEntity(name = name.trim(), isDefault = false, colorIndex = colorIndex))
     }
 
     suspend fun deleteCategory(category: CategoryEntity) {

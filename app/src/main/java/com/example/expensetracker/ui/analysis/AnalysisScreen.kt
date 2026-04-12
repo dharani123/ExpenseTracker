@@ -1,14 +1,18 @@
 package com.example.expensetracker.ui.analysis
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -36,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.expensetracker.data.local.dao.CategoryTotal
+import com.example.expensetracker.ui.theme.CategoryColors
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -150,7 +155,7 @@ private fun PeriodAnalysisContent(
     onNext: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Period selector
+        // Period selector (fixed, not scrollable)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -173,71 +178,80 @@ private fun PeriodAnalysisContent(
 
         HorizontalDivider()
 
-        // Total card
-        Card(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Total Spent",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = formatAmount(total),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-
-        if (categoryTotals.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No categorised expenses for this period",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            Text(
-                text = "By Category",
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(categoryTotals) { item ->
-                    CategoryRow(item = item, total = total)
+            // Total card
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Total Spent",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = formatAmount(total),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
+            }
+
+            if (categoryTotals.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No categorised expenses for this period",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Text(
+                        text = "By Category",
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                items(categoryTotals.size) { index ->
+                    CategoryRow(item = categoryTotals[index], total = total, colorIndex = index)
+                }
+                item { Spacer(modifier = Modifier.size(16.dp)) }
             }
         }
     }
 }
 
+
 @Composable
-private fun CategoryRow(item: CategoryTotal, total: Double) {
+private fun CategoryRow(item: CategoryTotal, total: Double, colorIndex: Int) {
     val fraction = if (total > 0) (item.total / total).toFloat().coerceIn(0f, 1f) else 0f
     val percentage = (fraction * 100).toInt()
+    val sliceColor = CategoryColors[colorIndex % CategoryColors.size]
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -249,11 +263,19 @@ private fun CategoryRow(item: CategoryTotal, total: Double) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = item.categoryName,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(color = sliceColor, shape = CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = item.categoryName,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = formatAmount(item.total),
@@ -273,7 +295,7 @@ private fun CategoryRow(item: CategoryTotal, total: Double) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp),
-                color = MaterialTheme.colorScheme.primary,
+                color = sliceColor,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         }

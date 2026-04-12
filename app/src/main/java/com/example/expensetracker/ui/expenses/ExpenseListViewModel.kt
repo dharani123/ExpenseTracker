@@ -132,7 +132,8 @@ class ExpenseListViewModel @Inject constructor(
 
     fun addCategory(name: String) {
         viewModelScope.launch {
-            categoryRepository.addCategory(name)
+            val nextIndex = categories.value.size
+            categoryRepository.addCategory(name, nextIndex)
         }
     }
 
