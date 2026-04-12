@@ -238,7 +238,7 @@ private fun PeriodAnalysisContent(
                     )
                 }
                 items(categoryTotals.size) { index ->
-                    CategoryRow(item = categoryTotals[index], total = total, colorIndex = index)
+                    CategoryRow(item = categoryTotals[index], total = total, colorIndex = categoryTotals[index].colorIndex)
                 }
                 item { Spacer(modifier = Modifier.size(16.dp)) }
             }

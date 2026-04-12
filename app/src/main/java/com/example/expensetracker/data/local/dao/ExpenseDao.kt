@@ -22,7 +22,8 @@ data class ExpenseWithCategory(
 @Immutable
 data class CategoryTotal(
     val categoryName: String,
-    val total: Double
+    val total: Double,
+    val colorIndex: Int
 )
 
 @Dao
@@ -47,7 +48,7 @@ interface ExpenseDao {
     suspend fun updateAmount(expenseId: Long, amount: Double)
 
     @Query("""
-        SELECT c.name AS categoryName, SUM(e.amount) AS total
+        SELECT c.name AS categoryName, SUM(e.amount) AS total, c.colorIndex AS colorIndex
         FROM expenses e
         INNER JOIN categories c ON e.categoryId = c.id
         WHERE e.transactionDate BETWEEN :start AND :end
