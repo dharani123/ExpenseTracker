@@ -9,7 +9,7 @@ import com.example.expensetracker.data.local.entity.ExpenseEntity
 
 @Database(
     entities = [ExpenseEntity::class, CategoryEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

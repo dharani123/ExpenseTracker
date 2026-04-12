@@ -15,6 +15,7 @@ data class ExpenseWithCategory(
     val merchant: String,
     val categoryId: Long?,
     val categoryName: String?,
+    val colorIndex: Int,
     val smsBody: String,
     val transactionDate: Long
 )
@@ -34,7 +35,7 @@ interface ExpenseDao {
 
     @Query("""
         SELECT e.id, e.amount, e.merchant, e.categoryId, c.name AS categoryName,
-               e.smsBody, e.transactionDate
+               COALESCE(c.colorIndex, -1) AS colorIndex, e.smsBody, e.transactionDate
         FROM expenses e
         LEFT JOIN categories c ON e.categoryId = c.id
         ORDER BY e.transactionDate DESC

@@ -10,11 +10,15 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -56,6 +60,7 @@ import com.example.expensetracker.data.local.dao.ExpenseWithCategory
 import com.example.expensetracker.data.local.entity.CategoryEntity
 import com.example.expensetracker.ui.components.AddCategoryDialog
 import com.example.expensetracker.ui.components.CategoryDropdown
+import com.example.expensetracker.ui.theme.CategoryColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -444,6 +449,11 @@ private fun ExpenseRow(
         )
     }
 
+    val accentColor = if (expense.colorIndex >= 0)
+        CategoryColors[expense.colorIndex % CategoryColors.size]
+    else
+        MaterialTheme.colorScheme.outlineVariant
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -453,36 +463,48 @@ private fun ExpenseRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .height(IntrinsicSize.Min)
         ) {
-            Text(
-                text = formatAmount(expense.amount),
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .clickable { showEditAmount = true },
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.error
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(accentColor)
             )
-            Text(
-                text = expense.merchant,
+            Row(
                 modifier = Modifier
-                    .weight(1.2f)
-                    .padding(horizontal = 4.dp)
-                    .clickable { showSmsDialog = true },
-                fontSize = 12.sp,
-                maxLines = 2
-            )
-            CategoryDropdown(
-                categories = categories,
-                selectedCategoryId = expense.categoryId,
-                onCategorySelected = { categoryId -> onCategorySelected(expense.id, categoryId) },
-                onAddCategoryClick = onAddCategoryClick,
-                onDeleteCategory = onDeleteCategory,
-                modifier = Modifier.weight(1.4f)
-            )
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatAmount(expense.amount),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showEditAmount = true },
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = expense.merchant,
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .padding(horizontal = 4.dp)
+                        .clickable { showSmsDialog = true },
+                    fontSize = 12.sp,
+                    maxLines = 2
+                )
+                CategoryDropdown(
+                    categories = categories,
+                    selectedCategoryId = expense.categoryId,
+                    onCategorySelected = { categoryId -> onCategorySelected(expense.id, categoryId) },
+                    onAddCategoryClick = onAddCategoryClick,
+                    onDeleteCategory = onDeleteCategory,
+                    modifier = Modifier.weight(1.4f)
+                )
+            }
         }
     }
 }

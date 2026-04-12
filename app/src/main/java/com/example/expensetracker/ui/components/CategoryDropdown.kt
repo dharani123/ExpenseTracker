@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -95,15 +94,6 @@ fun CategoryDropdown(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
-            if (selectedCategory != null) {
-                val color = CategoryColors[selectedCategory.colorIndex % CategoryColors.size]
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(color, CircleShape)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-            }
             Text(
                 text = selectedCategory?.name ?: "—",
                 fontSize = 12.sp,
